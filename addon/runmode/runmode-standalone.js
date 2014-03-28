@@ -1,5 +1,3 @@
-/* Just enough of CodeMirror to run runMode under node.js */
-
 window.CodeMirror = {};
 
 (function() {
@@ -91,6 +89,10 @@ CodeMirror.getMode = function (options, spec) {
   return mfactory(options, spec);
 };
 CodeMirror.registerHelper = CodeMirror.registerGlobalHelper = Math.min;
+CodeMirror.defineMode("null", function() {
+  return {token: function(stream) {stream.skipToEnd();}};
+});
+CodeMirror.defineMIME("text/plain", "null");
 
 CodeMirror.runMode = function (string, modespec, callback, options) {
   var mode = CodeMirror.getMode({ indentUnit: 2 }, modespec);
