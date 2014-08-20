@@ -1,3 +1,6 @@
+// CodeMirror, copyright (c) by Marijn Haverbeke and others
+// Distributed under an MIT license: http://codemirror.net/LICENSE
+
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
     mod(require("../../lib/codemirror"));
@@ -38,15 +41,25 @@
         for (var i = 0; i < childList.length; ++i) if (!prefix || childList[i].lastIndexOf(prefix, 0) == 0)
           result.push("<" + childList[i]);
       } else if (tagType != "close") {
-        for (var name in tags) if (tags.hasOwnProperty(name) && name != "!top" && (!prefix || name.lastIndexOf(prefix, 0) == 0))
-          result.push("<" + name);
+        for (var name in tags)
+          if (tags.hasOwnProperty(name) && name != "!top" && name != "!attrs" && (!prefix || name.lastIndexOf(prefix, 0) == 0))
+            result.push("<" + name);
       }
       if (cx && (!prefix || tagType == "close" && cx.tagName.lastIndexOf(prefix, 0) == 0))
         result.push("</" + cx.tagName + ">");
     } else {
       // Attribute completion
       var curTag = tags[inner.state.tagName], attrs = curTag && curTag.attrs;
-      if (!attrs) return;
+      var globalAttrs = tags["!attrs"];
+      if (!attrs && !globalAttrs) return;
+      if (!attrs) {
+        attrs = globalAttrs;
+      } else if (globalAttrs) { // Combine tag-local and global attributes
+        var set = {};
+        for (var nm in globalAttrs) if (globalAttrs.hasOwnProperty(nm)) set[nm] = globalAttrs[nm];
+        for (var nm in attrs) if (attrs.hasOwnProperty(nm)) set[nm] = attrs[nm];
+        attrs = set;
+      }
       if (token.type == "string" || token.string == "=") { // A value
         var before = cm.getRange(Pos(cur.line, Math.max(0, cur.ch - 60)),
                                  Pos(cur.line, token.type == "string" ? token.start : token.end));
@@ -55,9 +68,16 @@
         if (typeof atValues == 'function') atValues = atValues.call(this, cm); // Functions can be used to supply values for autocomplete widget
         if (token.type == "string") {
           prefix = token.string;
+          var n = 0;
           if (/['"]/.test(token.string.charAt(0))) {
             quote = token.string.charAt(0);
             prefix = token.string.slice(1);
+            n++;
+          }
+          var len = token.string.length;
+          if (/['"]/.test(token.string.charAt(len - 1))) {
+            quote = token.string.charAt(len - 1);
+            prefix = token.string.substr(n, len - 2);
           }
           replaceToken = true;
         }
