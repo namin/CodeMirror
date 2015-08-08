@@ -128,6 +128,9 @@
   sim("clearMark", "abcde", Pos(0, 2), "Ctrl-Space", "Ctrl-F", "Ctrl-F",
       "Ctrl-G", "Ctrl-W", txt("abcde"));
 
+  sim("delRegion", "abcde", "Ctrl-Space", "Ctrl-F", "Ctrl-F", "Delete", txt("cde"));
+  sim("backspaceRegion", "abcde", "Ctrl-Space", "Ctrl-F", "Ctrl-F", "Backspace", txt("cde"));
+
   testCM("save", function(cm) {
     var saved = false;
     CodeMirror.commands.save = function(cm) { saved = cm.getValue(); };
@@ -135,4 +138,10 @@
     cm.triggerOnKeyDown(fakeEvent("Ctrl-S"));
     is(saved, "hi");
   }, {value: "hi", keyMap: "emacs"});
+
+  testCM("gotoInvalidLineFloat", function(cm) {
+    cm.openDialog = function(_, cb) { cb("2.2"); };
+    cm.triggerOnKeyDown(fakeEvent("Alt-G"));
+    cm.triggerOnKeyDown(fakeEvent("G"));
+  }, {value: "1\n2\n3\n4", keyMap: "emacs"});
 })();
