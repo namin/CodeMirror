@@ -18,7 +18,16 @@
 
   function findMatchingBracket(cm, where, strict, config) {
     var line = cm.getLineHandle(where.line), pos = where.ch - 1;
-    var match = (pos >= 0 && matching[line.text.charAt(pos)]) || matching[line.text.charAt(++pos)];
+    var afterCursor = config && config.afterCursor
+    if (afterCursor == null)
+      afterCursor = /(^| )cm-fat-cursor($| )/.test(cm.getWrapperElement().className)
+
+    // A cursor is defined as between two characters, but in in vim command mode
+    // (i.e. not insert mode), the cursor is visually represented as a
+    // highlighted box on top of the 2nd character. Otherwise, we allow matches
+    // from before or after the cursor.
+    var match = (!afterCursor && pos >= 0 && matching[line.text.charAt(pos)]) ||
+        matching[line.text.charAt(++pos)];
     if (!match) return null;
     var dir = match.charAt(1) == ">" ? 1 : -1;
     if (strict && (dir > 0) != (pos == where.ch)) return null;
@@ -102,8 +111,10 @@
   }
 
   CodeMirror.defineOption("matchBrackets", false, function(cm, val, old) {
-    if (old && old != CodeMirror.Init)
+    if (old && old != CodeMirror.Init) {
       cm.off("cursorActivity", doMatchBrackets);
+      if (currentlyHighlighted) {currentlyHighlighted(); currentlyHighlighted = null;}
+    }
     if (val) {
       cm.state.matchBrackets = typeof val == "object" ? val : {};
       cm.on("cursorActivity", doMatchBrackets);
